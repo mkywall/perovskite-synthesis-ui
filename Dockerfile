@@ -44,4 +44,4 @@ EXPOSE 8080
 # Start the FastAPI server
 # --host 0.0.0.0 allows external connections (required for containers)
 # --port 8080 matches Google Cloud Run expectations
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080"] 
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"] 

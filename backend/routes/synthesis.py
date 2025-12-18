@@ -4,6 +4,7 @@ import logging
 import pandas as pd
 import numpy as np
 import gspread
+from google.auth import default
 from google.oauth2.service_account import Credentials
 from fastapi import APIRouter, HTTPException
 from models import SynthesisFieldsResponse, SynthesisUploadRequest, SynthesisUploadResponse
@@ -17,17 +18,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # For now we use admin client, but future have ORCID login and set up client that way
-load_dotenv()
-crucible_url = "https://crucible.lbl.gov/testapi"
-admin_apikey = os.environ.get('ADMIN_APIKEY')
-client = CrucibleClient(crucible_url, admin_apikey)
-logger.info(f"Crucible client initialized with URL: {crucible_url}")
+RUN_ENV = os.getenv('RUN_ENV')
+if RUN_ENV != 'cloud':
+    load_dotenv()
 
-# Google Sheets configuration
-GOOGLE_SHEETS_ID = os.environ.get('GOOGLE_SHEETS_ID')
-GOOGLE_SERVICE_ACCOUNT_FILE = os.environ.get('GOOGLE_SERVICE_ACCOUNT_FILE')
-
-# For now we use admin client, but future have ORCID login and set up client that way
 crucible_url = "https://crucible.lbl.gov/testapi"
 admin_apikey = os.environ.get('ADMIN_APIKEY')
 client = CrucibleClient(crucible_url, admin_apikey)
@@ -259,16 +253,18 @@ def add_dataset_to_google_sheet(dataset_type, ds_record, user_name):
         Exception: If Google Sheets configuration is missing or API call fails
     """
     logger.debug(f"Adding synthesis info to Google Sheet: {dataset_type} for {ds_record}")
-
-    if not GOOGLE_SHEETS_ID or not GOOGLE_SERVICE_ACCOUNT_FILE:
+    if not GOOGLE_SHEETS_ID or (not GOOGLE_SERVICE_ACCOUNT_FILE and RUN_ENV != 'cloud'):
         error_msg = "Google Sheets configuration missing. Please set GOOGLE_SHEETS_ID and GOOGLE_SERVICE_ACCOUNT_FILE in .env file"
         logger.error(error_msg)
         raise Exception(error_msg)
 
     # Set up credentials and authorize
-    logger.debug(f"Authorizing with Google Sheets API using service account: {GOOGLE_SERVICE_ACCOUNT_FILE}")
+    logger.debug(f"Authorizing with Google Sheets API using service account")
     scopes = ['https://www.googleapis.com/auth/spreadsheets']
-    credentials = Credentials.from_service_account_file(GOOGLE_SERVICE_ACCOUNT_FILE, scopes=scopes)
+    if RUN_ENV != 'cloud':
+        credentials = Credentials.from_service_account_file(GOOGLE_SERVICE_ACCOUNT_FILE, scopes=scopes)
+    else:
+        credentials, project = default(scopes=scopes)
     gc = gspread.authorize(credentials)
 
     # Open the spreadsheet
