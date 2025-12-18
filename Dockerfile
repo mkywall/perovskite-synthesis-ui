@@ -25,7 +25,10 @@ WORKDIR /app
 COPY backend/requirements.txt ./
 
 # Install Python dependencies
-RUN apt-get install git
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    apt-get purge -y --auto-remove && \
+    rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend source code
