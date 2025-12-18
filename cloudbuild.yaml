@@ -1,0 +1,14 @@
+substitutions:
+  _IMAGE_PATH: "us-central1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${REPO_NAME}-${BRANCH_NAME}"
+
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: [-c, 'docker pull ${_IMAGE_PATH}:latest || exit 0']
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: [-c, 'docker build -t ${_IMAGE_PATH}:latest --cache-from ${_IMAGE_PATH}:latest .' ]
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_IMAGE_PATH}:latest' ]
+
+timeout: 600s

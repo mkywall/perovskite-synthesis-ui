@@ -1,0 +1,379 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Helvetica, Arial, sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+  line-height: 1.6;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+}
+
+/* ============================================================================
+   Login Component
+   ============================================================================ */
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+}
+
+.login-box h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: #1a73e8;
+}
+
+.subtitle {
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+.login-form {
+  margin-top: 2rem;
+}
+
+/* ============================================================================
+   Form Elements
+   ============================================================================ */
+
+.form-group {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+}
+
+.form-group input:disabled,
+.form-group select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.form-section {
+  margin-top: 2rem;
+}
+
+/* ============================================================================
+   Buttons
+   ============================================================================ */
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #1a73e8;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #1557b0;
+}
+
+.btn-secondary {
+  background-color: #f1f3f4;
+  color: #333;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #e8eaed;
+}
+
+.btn-large {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+/* ============================================================================
+   User Info
+   ============================================================================ */
+
+.user-info-box {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+/* ============================================================================
+   Data Table
+   ============================================================================ */
+
+.data-table-container {
+  margin-top: 1rem;
+}
+
+.table-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.table-info {
+  margin-left: auto;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.data-grid-wrapper {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.rdg {
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+.rdg-cell {
+  padding: 0 8px;
+}
+
+/* ============================================================================
+   Messages
+   ============================================================================ */
+
+.error-message {
+  background-color: #fdecea;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  padding: 1rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+}
+
+.warning-message {
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  color: #856404;
+  padding: 1rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+}
+
+.success-box {
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  padding: 1.5rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+}
+
+.summary-message {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+/* ============================================================================
+   Batch Resolution
+   ============================================================================ */
+
+.batch-resolution {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.batch-resolution h2 {
+  margin-bottom: 1rem;
+  color: #1a73e8;
+}
+
+.batch-resolution h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.batch-form,
+.batch-selection {
+  margin-top: 1.5rem;
+}
+
+/* ============================================================================
+   Summary
+   ============================================================================ */
+
+.summary-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.summary-container h2 {
+  margin-bottom: 1rem;
+  color: #1a73e8;
+}
+
+.summary-details {
+  margin-top: 2rem;
+}
+
+.summary-details h3 {
+  margin-bottom: 1rem;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-item {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+.summary-label {
+  display: block;
+  font-weight: 500;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.summary-value {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.error-section {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #fdecea;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+}
+
+.error-section h4 {
+  color: #721c24;
+  margin-bottom: 0.5rem;
+}
+
+.error-list {
+  list-style-position: inside;
+  color: #721c24;
+}
+
+.error-list li {
+  margin-bottom: 0.25rem;
+}
+
+/* ============================================================================
+   Responsive Design
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .app {
+    padding: 1rem;
+  }
+
+  .container {
+    padding: 1rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .table-info {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+   Table Section
+   ============================================================================ */
+
+.table-section {
+  margin-top: 2rem;
+}
+
+.table-section h3 {
+  margin-bottom: 1rem;
+}
