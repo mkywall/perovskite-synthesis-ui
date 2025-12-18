@@ -13,7 +13,7 @@ RUN npm install
 
 # Build the React application for production
 # This creates an optimized dist/ folder with minified assets
-RUN npm run dev
+RUN npm run build
 
 # Stage 2: Setup Python backend and serve the built frontend
 FROM python:3.10-slim AS backend
