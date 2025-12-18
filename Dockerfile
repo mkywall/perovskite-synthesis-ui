@@ -25,6 +25,7 @@ WORKDIR /app
 COPY backend/requirements.txt ./
 
 # Install Python dependencies
+RUN apt-get install git
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend source code
