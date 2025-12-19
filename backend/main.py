@@ -27,6 +27,8 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(synthesis.router, prefix="/synthesis", tags=["synthesis"])
 app.include_router(batch.router, prefix="/batch", tags=["batch"])
 
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
 @app.get("/")
 async def root():
     return {"message": "Synthesis Data API", "status": "running"}
@@ -35,9 +37,6 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
-# Mount static files LAST - this acts as a catch-all for the React frontend
-# Must be after all API routes to avoid conflicts
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
