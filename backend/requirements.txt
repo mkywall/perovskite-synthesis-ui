@@ -3,3 +3,4 @@ uvicorn[standard]==0.24.0
 git+https://github.com/MolecularFoundryCrucible/pycrucible@eb0af09
 gspread
 google-auth
+pydantic[email]
