@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from routes import auth, synthesis, batch
 import logging
@@ -11,6 +12,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Synthesis Data API")
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 # CORS middleware for React frontend
 app.add_middleware(
