@@ -12,7 +12,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Synthesis Data API")
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 # CORS middleware for React frontend
 app.add_middleware(
@@ -28,13 +27,17 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(synthesis.router, prefix="/api/synthesis", tags=["synthesis"])
 app.include_router(batch.router, prefix="/api/batch", tags=["batch"])
 
-@app.get("/")
+@app.get("/api")
 async def root():
     return {"message": "Synthesis Data API", "status": "running"}
 
-@app.get("/health")
+@app.get("/api/health")
 async def health_check():
     return {"status": "healthy"}
+
+# Mount static files LAST - this acts as a catch-all for the React frontend
+# Must be after all API routes to avoid conflicts
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn

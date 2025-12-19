@@ -31,17 +31,14 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend source code
-COPY backend/ ./
-
-# Copy backend and built frontend
+# Copy backend source code and built frontend
 COPY backend/ ./backend/
 COPY --from=frontend-builder /app/frontend/dist ./static
 
-# Expose port 8080 (Google Cloud Run standard)
-EXPOSE 8080
+# Expose port 8000
+EXPOSE 8000
 
 # Start the FastAPI server
 # --host 0.0.0.0 allows external connections (required for containers)
-# --port 8080 matches Google Cloud Run expectations
+# --port 8000 matches the exposed port
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"] 
