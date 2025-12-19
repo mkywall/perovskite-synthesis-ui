@@ -31,8 +31,11 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend source code and built frontend
+# Copy backend source code
 COPY backend/ ./
+
+# Copy backend and built frontend
+COPY backend/ ./backend/
 COPY --from=frontend-builder /app/frontend/dist ./static
 
 # Expose port 8000
