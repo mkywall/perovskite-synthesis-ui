@@ -4,3 +4,4 @@ git+https://github.com/MolecularFoundryCrucible/pycrucible@eb0af09
 gspread
 google-auth
 pydantic[email]
+pandas
