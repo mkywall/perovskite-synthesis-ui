@@ -215,7 +215,9 @@ def add_synthesis_dataset(orcid, project, ds_record, synthesis_type, user_name, 
                         measurement = f"{synthesis_type} synthesis",
                         session_name = session_name,
                         creation_time = ds_record['timestamp'])
-
+    print(f"{orcid=}")
+    print(f"{ds_obj=}")
+    
     # Create keywords list, filtering out None values
     keywords = [k for k in [synthesis_type, sample_name, session_name] if k is not None]
     new_ds = client.create_new_dataset(ds_obj, scientific_metadata = ds_record, keywords = keywords)
