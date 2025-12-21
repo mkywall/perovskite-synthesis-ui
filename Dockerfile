@@ -29,7 +29,11 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends git && \
     apt-get purge -y --auto-remove && \
     rm -rf /var/lib/apt/lists/*
+
+# Rebuild
+RUN pip install git+https://github.com/MolecularFoundryCrucible/pycrucible@e7040ae
 RUN pip install --no-cache-dir -r requirements.txt
+
 
 # Copy backend source code
 COPY backend/ ./
