@@ -31,7 +31,6 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Rebuild
-RUN pip install git+https://github.com/MolecularFoundryCrucible/pycrucible@e7040ae
 RUN pip install --no-cache-dir -r requirements.txt
 
 

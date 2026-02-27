@@ -1,7 +1,7 @@
 
 # node.js
 **/node_modules/*
-**/package-lock.json
+*/package-lock.json
 
 # Google Cloud credentials (service account keys)
 *.json

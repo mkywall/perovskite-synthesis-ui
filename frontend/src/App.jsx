@@ -150,6 +150,7 @@ function App() {
             resolution={batchResolution}
             userInfo={userInfo}
             project={pendingUploadData?.project}
+            synthesisType={pendingUploadData?.synthesisType}
             onResolve={handleBatchResolved}
             onCancel={handleBatchResolutionCancel}
           />

@@ -54,6 +54,7 @@ class BatchResolveRequest(BaseModel):
 class BatchMatch(BaseModel):
     unique_id: str
     sample_name: str
+    sample_type: Optional[str] = None
     description: Optional[str] = None
     creation_date: Optional[str] = None
 
@@ -68,6 +69,7 @@ class BatchCreateRequest(BaseModel):
     batch_name: str
     batch_id: str
     batch_description: Optional[str] = None
+    batch_type: Optional[str] = None
     orcid: str
     project: str
 

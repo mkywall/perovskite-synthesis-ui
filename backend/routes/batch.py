@@ -10,16 +10,16 @@ import logging
 import os
 from dotenv import load_dotenv
 
-from pycrucible import CrucibleClient
-from pycrucible.models import BaseDataset
-from pycrucible.utils import get_tz_isoformat
+from crucible import CrucibleClient
+from crucible.models import BaseDataset
+from crucible.utils import get_tz_isoformat
 
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 load_dotenv()
-crucible_url = "https://crucible.lbl.gov/testapi"
+crucible_url = "https://crucible.lbl.gov/api/v1"
 admin_apikey = os.environ.get('ADMIN_APIKEY')
 client = CrucibleClient(crucible_url, admin_apikey)
 logger.info(f"Crucible client initialized with URL: {crucible_url}")
@@ -56,7 +56,7 @@ def resolve_batch_id(batch_id_input, orcid, project):
         return {'status': 'multiple_matches', 'matches': batches_by_name, 'input': batch_id_input}
 
 
-def create_batch_sample(batch_id, batch_name, description, orcid, project):
+def create_batch_sample(batch_id, batch_name,batch_type, description, orcid, project):
     """
     PLACEHOLDER: Replace with your actual batch creation logic
 
@@ -68,13 +68,13 @@ def create_batch_sample(batch_id, batch_name, description, orcid, project):
     today_date = get_tz_isoformat()
     new_batch = client.add_sample(
         sample_name=batch_id,
+        sample_type = batch_type,
         description=description,
         creation_date=today_date,
         owner_orcid=orcid,
         project_id=project
     )
     return new_batch
-    raise NotImplementedError("Replace with actual batch creation logic")
 
 
 @router.post("/resolve", response_model=BatchResolveResponse)
@@ -108,6 +108,7 @@ async def resolve_batch(request: BatchResolveRequest):
                 BatchMatch(
                     unique_id=match['unique_id'],
                     sample_name=match.get('sample_name', ''),
+                    sample_type=match.get('sample_type'),
                     description=match.get('description'),
                     creation_date=match.get('creation_date')
                 )
@@ -156,6 +157,7 @@ async def create_batch(request: BatchCreateRequest):
         new_batch = create_batch_sample(
             batch_id=request.batch_id,
             batch_name=request.batch_name,
+            batch_type = request.batch_type,
             description=description,
             orcid=request.orcid,
             project=request.project

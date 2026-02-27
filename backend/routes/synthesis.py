@@ -9,9 +9,9 @@ from google.oauth2.service_account import Credentials
 from fastapi import APIRouter, HTTPException
 from models import SynthesisFieldsResponse, SynthesisUploadRequest, SynthesisUploadResponse
 
-from pycrucible import CrucibleClient
-from pycrucible.models import BaseDataset
-from pycrucible.utils import get_tz_isoformat
+from crucible import CrucibleClient
+from crucible.models import BaseDataset
+from crucible.utils import get_tz_isoformat
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ RUN_ENV = os.getenv('RUN_ENV')
 if RUN_ENV != 'cloud':
     load_dotenv()
 
-crucible_url = "https://crucible.lbl.gov/testapi"
+crucible_url = "https://crucible.lbl.gov/api/v1"
 admin_apikey = os.environ.get('ADMIN_APIKEY')
 client = CrucibleClient(crucible_url, admin_apikey)
 logger.info(f"Crucible client initialized with URL: {crucible_url}")
@@ -156,7 +156,7 @@ def initialize_google_sheet_tab(worksheet, dataset_type):
 
     logger.info(f"Initialized Google Sheet tab '{config['sheet_name']}' with headers")
 
-def add_sample(orcid, project, sample_name, description, batch_id):
+def add_sample(orcid, project, sample_name, description, batch_id, sample_type=None):
     """
     Add a sample to the database and Google Sheet.
 
@@ -174,7 +174,7 @@ def add_sample(orcid, project, sample_name, description, batch_id):
     logger.debug(f"Adding sample to database: name={sample_name}, project={project}, orcid={orcid}")
     today_date = get_tz_isoformat()
     logger.debug(f"Adding sample via Crucible client...")
-    new_samp = client.add_sample(sample_name = sample_name, description = description, creation_date = today_date, owner_orcid = orcid, project_id = project)
+    new_samp = client.add_sample(sample_name = sample_name, sample_type = sample_type, description = description, creation_date = today_date, owner_orcid = orcid, project_id = project)
     logger.debug(f"Sample added to Crucible: {new_samp}")
 
     if batch_id:
@@ -441,7 +441,8 @@ def upload_all_sample_synthesis_info(orcid, project, dataset_df, synthesis_type,
                                    project = project,
                                    sample_name = record['sample_name'],
                                    description = record['sample_description'],
-                                   batch_id = batch_id)
+                                   batch_id = batch_id,
+                                   sample_type = synthesis_type.lower())
             sample_uuid = new_samp['unique_id']
 
             if synthesis_type == 'Stock Solution':

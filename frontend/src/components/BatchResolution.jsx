@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createBatch } from '../services/api';
 
-const BatchResolution = ({ resolution, userInfo, project, onResolve, onCancel }) => {
+const BatchResolution = ({ resolution, userInfo, project, synthesisType, onResolve, onCancel }) => {
   const [selectedBatch, setSelectedBatch] = useState('');
   const [batchName, setBatchName] = useState('');
   const [batchId, setBatchId] = useState(resolution.input || '');
@@ -30,6 +30,7 @@ const BatchResolution = ({ resolution, userInfo, project, onResolve, onCancel })
         batch_name: batchName,
         batch_id: batchId,
         batch_description: batchDescription,
+        batch_type: synthesisType ? synthesisType.toLowerCase() : null,
         orcid: userInfo.orcid,
         project: project
       });

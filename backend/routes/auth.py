@@ -5,9 +5,9 @@ import secrets
 import os
 from dotenv import load_dotenv
 
-from pycrucible import CrucibleClient
-from pycrucible.models import BaseDataset
-from pycrucible.utils import get_tz_isoformat
+from crucible import CrucibleClient
+from crucible.models import BaseDataset
+from crucible.utils import get_tz_isoformat
 
 
 logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ router = APIRouter()
 sessions = {}
 
 load_dotenv()
-crucible_url = "https://crucible.lbl.gov/testapi"
+crucible_url = "https://crucible.lbl.gov/api/v1"
 admin_apikey = os.environ.get('ADMIN_APIKEY')
 client = CrucibleClient(crucible_url, admin_apikey)
 logger.info(f"Crucible client initialized with URL: {crucible_url}")
