@@ -2,7 +2,6 @@ import axios from 'axios';
 
 const API_BASE_URL = '/api';
 
-// Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -42,24 +41,6 @@ export const getSynthesisFields = async () => {
 
 export const uploadSynthesisData = async (uploadData) => {
   const response = await api.post('/synthesis/upload', uploadData);
-  return response.data;
-};
-
-// ============================================================================
-// Batch API
-// ============================================================================
-
-export const resolveBatch = async (batchId, orcid, project) => {
-  const response = await api.post('/batch/resolve', {
-    batch_id: batchId,
-    orcid,
-    project
-  });
-  return response.data;
-};
-
-export const createBatch = async (batchData) => {
-  const response = await api.post('/batch/create', batchData);
   return response.data;
 };
 

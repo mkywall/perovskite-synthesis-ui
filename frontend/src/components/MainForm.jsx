@@ -1,17 +1,15 @@
 import { useState, useEffect } from 'react';
 import DataTable from './DataTable';
-import { getSynthesisFields, uploadSynthesisData, resolveBatch } from '../services/api';
+import { getSynthesisFields, uploadSynthesisData } from '../services/api';
 
-const MainForm = ({ userInfo, onUploadSuccess, onShowBatchResolution }) => {
+const MainForm = ({ userInfo, onUploadSuccess }) => {
   const [synthesisFields, setSynthesisFields] = useState({});
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedSynthesisType, setSelectedSynthesisType] = useState('');
-  const [batchId, setBatchId] = useState('');
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch synthesis fields on mount
   useEffect(() => {
     const fetchFields = async () => {
       try {
@@ -28,14 +26,13 @@ const MainForm = ({ userInfo, onUploadSuccess, onShowBatchResolution }) => {
 
   const handleSynthesisTypeChange = (e) => {
     setSelectedSynthesisType(e.target.value);
-    setTableData([]); // Clear table data when type changes
+    setTableData([]);
     setError('');
   };
 
   const handleUpload = async () => {
     setError('');
 
-    // Validation
     if (!selectedProject) {
       setError('Please select a project');
       return;
@@ -54,47 +51,12 @@ const MainForm = ({ userInfo, onUploadSuccess, onShowBatchResolution }) => {
     setLoading(true);
 
     try {
-      // If batch ID is provided, resolve it first
-      if (batchId.trim()) {
-        const resolution = await resolveBatch(
-          batchId.trim(),
-          userInfo.orcid,
-          selectedProject
-        );
-
-        if (resolution.status === 'not_found' || resolution.status === 'multiple_matches') {
-          // Show batch resolution UI
-          onShowBatchResolution(resolution, {
-            project: selectedProject,
-            synthesisType: selectedSynthesisType,
-            data: tableData
-          });
-          setLoading(false);
-          return;
-        }
-
-        // If resolved, proceed with upload using resolved batch_id
-        await performUpload(resolution.batch_id);
-      } else {
-        // No batch ID, proceed with upload
-        await performUpload(null);
-      }
-    } catch (err) {
-      console.error('Upload error:', err);
-      setError(err.response?.data?.detail || 'An error occurred during upload');
-      setLoading(false);
-    }
-  };
-
-  const performUpload = async (resolvedBatchId) => {
-    try {
       const uploadData = {
         email: userInfo.email,
         orcid: userInfo.orcid,
         user_name: userInfo.name,
         project: selectedProject,
         synthesis_type: selectedSynthesisType,
-        batch_id: resolvedBatchId,
         data: tableData
       };
 
@@ -116,7 +78,6 @@ const MainForm = ({ userInfo, onUploadSuccess, onShowBatchResolution }) => {
   const handleCancel = () => {
     setSelectedSynthesisType('');
     setTableData([]);
-    setBatchId('');
     setError('');
   };
 
@@ -163,18 +124,6 @@ const MainForm = ({ userInfo, onUploadSuccess, onShowBatchResolution }) => {
                 </option>
               ))}
             </select>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="batchId">Batch ID (Optional)</label>
-            <input
-              id="batchId"
-              type="text"
-              value={batchId}
-              onChange={(e) => setBatchId(e.target.value)}
-              placeholder="Enter batch ID to link samples"
-              disabled={loading}
-            />
           </div>
         </div>
 
