@@ -10,6 +10,20 @@ from crucible import CrucibleClient
 from crucible.models import BaseDataset
 from crucible.utils import get_tz_isoformat
 
+# Chem Utils
+from rdkit import Chem
+from rdkit import RDLogger
+
+
+def canonical(smi):
+    """Return canonical SMILES, or None if parsing fails or input is empty."""
+    if not isinstance(smi, str) or not smi.strip():
+        return None
+    mol = Chem.MolFromSmiles(smi)
+    if mol is None:
+        return None
+    return Chem.MolToSmiles(mol)
+
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -126,6 +140,9 @@ def upload_all_sample_synthesis_info(orcid, project, dataset_df, synthesis_type,
                 link_to_parent_by_name(record, 'component_a_ss-id', project, sample_uuid)
                 link_to_parent_by_name(record, 'component_b_ss-id', project, sample_uuid)
 
+            canonical_updates = {f'{k}_canonical': canonical(v) for k,v in record.items() if 'smiles' in k.lower()}
+            record.update(canonical_updates)
+                
             add_synthesis_dataset(orcid, project, record, synthesis_type, user_name, session_name)
             success_count += 1
 

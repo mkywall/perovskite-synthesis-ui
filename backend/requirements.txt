@@ -3,3 +3,4 @@ uvicorn[standard]==0.24.0
 nano-crucible
 pydantic[email]
 pandas
+rdkit
