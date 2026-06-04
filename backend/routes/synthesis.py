@@ -32,7 +32,7 @@ RUN_ENV = os.getenv('RUN_ENV')
 if RUN_ENV != 'cloud':
     load_dotenv()
 
-crucible_url = "https://crucible.lbl.gov/api/v1"
+crucible_url = "https://crucible.lbl.gov/api/v2"
 admin_apikey = os.environ.get('ADMIN_APIKEY')
 client = CrucibleClient(crucible_url, admin_apikey)
 logger.info(f"Crucible client initialized with URL: {crucible_url}")
@@ -123,6 +123,7 @@ def upload_all_sample_synthesis_info(orcid, project, dataset_df, synthesis_type,
     success_count = 0
     failed_count = 0
     error_messages = []
+    created_samples = []
 
     for record in ds_dictionaries:
         try:
@@ -131,6 +132,7 @@ def upload_all_sample_synthesis_info(orcid, project, dataset_df, synthesis_type,
                                   description=record['sample_description'],
                                   sample_type=synthesis_type.lower())
             sample_uuid = new_samp['unique_id']
+            created_samples.append({'sample_name': record['sample_name'], 'unique_id': sample_uuid})
 
             if synthesis_type == 'Stock Solution':
                 link_to_parent_by_name(record, 'organic_salt_sp-id', project, sample_uuid)
@@ -157,7 +159,8 @@ def upload_all_sample_synthesis_info(orcid, project, dataset_df, synthesis_type,
         "Synthesis Type": synthesis_type,
         "Samples Uploaded": success_count,
         "Failed": failed_count,
-        "Total Rows": len(ds_dictionaries)
+        "Total Rows": len(ds_dictionaries),
+        "Created Samples": created_samples
     }
     if error_messages:
         summary["Errors"] = error_messages

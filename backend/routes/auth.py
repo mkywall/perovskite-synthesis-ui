@@ -39,10 +39,10 @@ def lookup_user_by_email(email):
     user = client.get_user(email = email)
     if user:
         logger.debug(f"User found: {user}")
-        orcid = user['orcid']
+        orcid = user['unique_id']
         full_name = f"{user['first_name']} {user['last_name']}"
         # TODO: this is actually wrong - should return projects based on ACL not ownership
-        projects = client.list_projects(orcid = user['orcid'])
+        projects = client.list_projects(orcid = user['unique_id'])
         logger.debug(f"Found {len(projects)} projects for user {orcid}")
         project_ids = [p['project_id'] for p in projects]
         project_ids.sort()
