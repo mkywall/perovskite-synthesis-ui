@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from routes import auth, synthesis, batch
+from routes import auth, synthesis
 import logging
 
 # Configure logging
@@ -12,7 +12,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Synthesis Data API")
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 # CORS middleware for React frontend
 app.add_middleware(
@@ -26,7 +25,9 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(synthesis.router, prefix="/api/synthesis", tags=["synthesis"])
-app.include_router(batch.router, prefix="/api/batch", tags=["batch"])
+
+
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 @app.get("/")
 async def root():
@@ -35,6 +36,7 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
 
 if __name__ == "__main__":
     import uvicorn

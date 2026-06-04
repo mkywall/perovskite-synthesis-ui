@@ -5,9 +5,9 @@ import secrets
 import os
 from dotenv import load_dotenv
 
-from pycrucible import CrucibleClient
-from pycrucible.models import BaseDataset
-from pycrucible.utils import get_tz_isoformat
+from crucible import CrucibleClient
+from crucible.models import BaseDataset
+from crucible.utils import get_tz_isoformat
 
 
 logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ router = APIRouter()
 sessions = {}
 
 load_dotenv()
-crucible_url = "https://crucible.lbl.gov/testapi"
+crucible_url = "https://crucible.lbl.gov/api/v1"
 admin_apikey = os.environ.get('ADMIN_APIKEY')
 client = CrucibleClient(crucible_url, admin_apikey)
 logger.info(f"Crucible client initialized with URL: {crucible_url}")
@@ -39,10 +39,10 @@ def lookup_user_by_email(email):
     user = client.get_user(email = email)
     if user:
         logger.debug(f"User found: {user}")
-        orcid = user['orcid']
+        orcid = user['unique_id']
         full_name = f"{user['first_name']} {user['last_name']}"
         # TODO: this is actually wrong - should return projects based on ACL not ownership
-        projects = client.list_projects(orcid = user['orcid'])
+        projects = client.list_projects(orcid = user['unique_id'])
         logger.debug(f"Found {len(projects)} projects for user {orcid}")
         project_ids = [p['project_id'] for p in projects]
         project_ids.sort()
