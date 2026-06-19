@@ -54,7 +54,7 @@ SYNTHESIS_FIELDS = {
     ],
     "Precursor Solution": [
         "Sample Name", "Sample Description", "Notes", "Target Stoichiometry", "Component A SS-ID",
-        "Component B SS-ID", "Organic_SMILES", "Metal_SMILES", "Mixing Ratio", "Target Concentration (M)",
+        "Component B SS-ID", "SMILES_Organic", "SMILES_Metal", "Mixing Ratio", "Target Concentration (M)",
         "Storage Location", "PS Autobot Recipe Filename"
     ],
 }
