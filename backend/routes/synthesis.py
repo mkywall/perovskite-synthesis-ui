@@ -87,7 +87,7 @@ def add_synthesis_dataset(orcid, project, ds_record, synthesis_type, user_name, 
                          creation_time=ds_record['timestamp'])
     keywords = [k for k in [synthesis_type, sample_name, session_name] if k is not None]
     new_ds = client.create_new_dataset(ds_obj, scientific_metadata=ds_record, keywords=keywords)
-    found_samples = client.list_samples(sample_name=sample_name)
+    found_samples = client.list_samples(sample_name=sample_name, project_id=project)
     if len(found_samples) == 0:
         raise Exception(f'Sample with name {sample_name} not found')
     elif len(found_samples) > 1:
