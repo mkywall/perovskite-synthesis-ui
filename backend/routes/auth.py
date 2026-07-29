@@ -6,8 +6,6 @@ import os
 from dotenv import load_dotenv
 
 from crucible import CrucibleClient
-from crucible.models import BaseDataset
-from crucible.utils import get_tz_isoformat
 
 
 logger = logging.getLogger(__name__)
@@ -36,13 +34,16 @@ def lookup_user_by_email(email):
         - projects_list: list of str, available projects
     """
     logger.debug(f"Looking up user by email: {email}")
-    user = client.get_user(email = email)
+    try:
+        user = client.users.get(email = email)
+    except ValueError:
+        user = None
     if user:
         logger.debug(f"User found: {user}")
         orcid = user['unique_id']
         full_name = f"{user['first_name']} {user['last_name']}"
         # TODO: this is actually wrong - should return projects based on ACL not ownership
-        projects = client.list_projects(orcid = user['unique_id'])
+        projects = client.projects.list(orcid = user['unique_id'])
         logger.debug(f"Found {len(projects)} projects for user {orcid}")
         project_ids = [p['project_id'] for p in projects]
         project_ids.sort()

@@ -10,5 +10,21 @@ steps:
     args: [-c, 'docker build -t ${_IMAGE_PATH}:latest --cache-from ${_IMAGE_PATH}:latest .' ]
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', '${_IMAGE_PATH}:latest' ]
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        if [ "${BRANCH_NAME}" = "main" ]; then
+          gcloud run deploy perovskite-synthesis-ui-main \
+            --image ${_IMAGE_PATH}:latest \
+            --region us-central1 \
+            --platform managed \
+            --quiet \
+            --update-env-vars DEBUG=true,RUN_ENV=cloud,PYTHON_UNBUFFERED=1 \
+            --update-secrets ADMIN_APIKEY=perovskite-apps-crucible-apikey:latest,PROPDB_APIKEY=propdb-apikey:latest
+        else
+          echo "Branch '${BRANCH_NAME}' is not main; skipping Cloud Run deploy."
+        fi
 
 timeout: 600s
