@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException
 from models import SynthesisFieldsResponse, SynthesisUploadRequest, SynthesisUploadResponse
 
 from crucible import CrucibleClient
-from crucible.models import BaseDataset
+from crucible.models import Dataset, Sample
 from crucible.utils import get_tz_isoformat
 
 # Chem Utils
@@ -63,8 +63,9 @@ SYNTHESIS_FIELDS = {
 def add_sample(orcid, project, sample_name, description, sample_type=None):
     logger.debug(f"Adding sample to database: name={sample_name}, project={project}, orcid={orcid}")
     today_date = get_tz_isoformat()
-    new_samp = client.add_sample(sample_name=sample_name, sample_type=sample_type, description=description,
-                                 creation_date=today_date, owner_orcid=orcid, project_id=project)
+    new_samp = client.samples.create(Sample(sample_name=sample_name, sample_type=sample_type,
+                                            description=description, timestamp=today_date,
+                                            owner_orcid=orcid, project_id=project))
     logger.debug(f"Sample added to Crucible: {new_samp}")
     return {
         'sample_name': sample_name,
@@ -78,33 +79,33 @@ def add_sample(orcid, project, sample_name, description, sample_type=None):
 def add_synthesis_dataset(orcid, project, ds_record, synthesis_type, user_name, session_name=None):
     sample_name = ds_record['sample_name']
     dataset_name = f'{synthesis_type} recipe for {sample_name}'
-    ds_obj = BaseDataset(dataset_name=dataset_name,
-                         public=False,
-                         owner_orcid=orcid,
-                         project_id=project,
-                         measurement=f"{synthesis_type} synthesis",
-                         session_name=session_name,
-                         creation_time=ds_record['timestamp'])
+    ds_obj = Dataset(dataset_name=dataset_name,
+                     public=False,
+                     owner_orcid=orcid,
+                     project_id=project,
+                     measurement=f"{synthesis_type} synthesis",
+                     session_name=session_name,
+                     timestamp=ds_record['timestamp'])
     keywords = [k for k in [synthesis_type, sample_name, session_name] if k is not None]
-    new_ds = client.create_new_dataset(ds_obj, scientific_metadata=ds_record, keywords=keywords)
-    found_samples = client.list_samples(sample_name=sample_name, project_id=project)
+    new_ds = client.datasets.create(ds_obj, scientific_metadata=ds_record, keywords=keywords)
+    found_samples = client.samples.list(sample_name=sample_name, project_id=project)
     if len(found_samples) == 0:
         raise Exception(f'Sample with name {sample_name} not found')
     elif len(found_samples) > 1:
         raise Exception(f'Multiple samples with name {sample_name} were found: {found_samples}')
     else:
         sample = found_samples[-1]
-    client.add_dataset_to_sample(dataset_id=new_ds['created_record']['unique_id'], sample_id=sample['unique_id'])
+    client.samples.add_dataset(sample_id=sample['unique_id'], dataset_id=new_ds['created_record']['unique_id'])
 
 
 def link_to_parent_by_name(ds_record, parent_field, project, sample_id):
     parent_sample = ds_record[parent_field]
     if parent_sample is None:
         return
-    samples_with_parent_name = client.list_samples(sample_name=parent_sample, project_id=project)
+    samples_with_parent_name = client.samples.list(sample_name=parent_sample, project_id=project)
     if len(samples_with_parent_name) == 1:
         parent_sample_id = samples_with_parent_name[-1]['unique_id']
-        client.link_samples(parent_sample_id, sample_id)
+        client.samples.link(parent_sample_id, sample_id)
         return 'Success'
     elif len(samples_with_parent_name) > 1:
         return 'Multiple parents found'
