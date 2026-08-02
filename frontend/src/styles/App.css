@@ -377,3 +377,101 @@ body {
 .table-section h3 {
   margin-bottom: 1rem;
 }
+
+/* ============================================================================
+   Validation Review
+   ============================================================================ */
+
+.validation-review {
+  margin-top: 1.5rem;
+}
+
+.validation-section {
+  margin-top: 1.5rem;
+}
+
+.validation-section h3 {
+  margin-bottom: 0.5rem;
+}
+
+.validation-section .error-list {
+  color: #856404;
+}
+
+.validation-note {
+  color: #5f6368;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.validation-item {
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.validation-item-header {
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+}
+
+.candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.candidate-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #e8eaed;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.candidate-option:hover {
+  background-color: #f8f9fa;
+}
+
+.candidate-option input {
+  margin-top: 0.25rem;
+}
+
+.candidate-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.candidate-name {
+  font-weight: 500;
+}
+
+.candidate-meta {
+  color: #5f6368;
+  font-size: 0.85rem;
+}
+
+.candidate-id {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #5f6368;
+}
+
+.candidate-desc {
+  flex-basis: 100%;
+  color: #5f6368;
+  font-size: 0.85rem;
+}
+
+.confirm-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  cursor: pointer;
+}

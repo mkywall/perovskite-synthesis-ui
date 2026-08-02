@@ -4,7 +4,8 @@ import logging
 import pandas as pd
 import numpy as np
 from fastapi import APIRouter, HTTPException
-from models import SynthesisFieldsResponse, SynthesisUploadRequest, SynthesisUploadResponse
+from models import (SynthesisFieldsResponse, SynthesisUploadRequest, SynthesisUploadResponse,
+                    AmbiguousParent, UnresolvedParent, ParentCandidate, DuplicateName)
 
 from crucible import CrucibleClient
 from crucible.models import Dataset, Sample
@@ -59,6 +60,29 @@ SYNTHESIS_FIELDS = {
     ],
 }
 
+# Which columns hold parent references, and what sample_type those parents must
+# be. A stock solution is always made from solid precursors; a precursor
+# solution always from stock solutions. Filtering the lookup by type removes
+# most name collisions before they can reach the user.
+PARENT_FIELDS = {
+    "Stock Solution": {
+        "parent_type": "solid precursor",
+        "fields": {
+            "organic_salt_sp-id": "Organic Salt SP-ID",
+            "metal_salt_sp-id": "Metal Salt SP-ID",
+        },
+    },
+    "Precursor Solution": {
+        "parent_type": "stock solution",
+        "fields": {
+            "component_a_ss-id": "Component A SS-ID",
+            "component_b_ss-id": "Component B SS-ID",
+        },
+    },
+}
+
+CRUCIBLE_ID_LENGTH = 26
+
 
 def add_sample(orcid, project, sample_name, description, sample_type=None):
     logger.debug(f"Adding sample to database: name={sample_name}, project={project}, orcid={orcid}")
@@ -76,7 +100,7 @@ def add_sample(orcid, project, sample_name, description, sample_type=None):
     }
 
 
-def add_synthesis_dataset(orcid, project, ds_record, synthesis_type, user_name, session_name=None):
+def add_synthesis_dataset(orcid, project, ds_record, synthesis_type, user_name, sample_uuid, session_name=None):
     sample_name = ds_record['sample_name']
     dataset_name = f'{synthesis_type} recipe for {sample_name}'
     ds_obj = Dataset(dataset_name=dataset_name,
@@ -88,45 +112,162 @@ def add_synthesis_dataset(orcid, project, ds_record, synthesis_type, user_name, 
                      timestamp=ds_record['timestamp'])
     keywords = [k for k in [synthesis_type, sample_name, session_name] if k is not None]
     new_ds = client.datasets.create(ds_obj, scientific_metadata=ds_record, keywords=keywords)
-    found_samples = client.samples.list(sample_name=sample_name, project_id=project)
-    if len(found_samples) == 0:
-        raise Exception(f'Sample with name {sample_name} not found')
-    elif len(found_samples) > 1:
-        raise Exception(f'Multiple samples with name {sample_name} were found: {found_samples}')
-    else:
-        sample = found_samples[-1]
-    client.samples.add_dataset(sample_id=sample['unique_id'], dataset_id=new_ds['created_record']['unique_id'])
+    client.samples.add_dataset(sample_id=sample_uuid, dataset_id=new_ds['created_record']['unique_id'])
 
 
-def link_to_parent_by_name(ds_record, parent_field, project, sample_id):
-    parent_sample = ds_record[parent_field]
-    if parent_sample is None:
-        return
-    samples_with_parent_name = client.samples.list(sample_name=parent_sample, project_id=project)
-    if len(samples_with_parent_name) == 1:
-        parent_sample_id = samples_with_parent_name[-1]['unique_id']
-        client.samples.link(parent_sample_id, sample_id)
-        return 'Success'
-    elif len(samples_with_parent_name) > 1:
-        return 'Multiple parents found'
-    else:
-        return 'Parent not found'
+def _candidate(sample):
+    return ParentCandidate(
+        unique_id=sample['unique_id'],
+        sample_name=sample['sample_name'],
+        sample_type=sample.get('sample_type'),
+        date_created=sample.get('timestamp') or sample.get('creation_time'),
+        description=sample.get('description'),
+    )
 
 
-def upload_all_sample_synthesis_info(orcid, project, dataset_df, synthesis_type, user_name, session_name=None):
-    logger.debug(f"Adding {len(dataset_df)} rows of {synthesis_type} dataset to project {project}")
+def _selection_is_valid(unique_id, project, parent_type):
+    """The client echoes selections back to us, so re-check them before linking."""
+    try:
+        sample = client.samples.get(unique_id)
+    except Exception:
+        return False
+    return bool(sample) and sample.get('project_id') == project \
+        and sample.get('sample_type') == parent_type
 
+
+def resolve_parent_reference(reference, project, parent_type):
+    """
+    Resolve one parent reference to a sample unique_id.
+
+    Returns (unique_id, candidates). A unique_id means the reference resolved.
+    Otherwise candidates holds the competing matches, which is empty when
+    nothing matched at all.
+    """
+    reference = str(reference).strip()
+
+    # The sheet's *-ID columns may hold a real Crucible id rather than a name.
+    if len(reference) == CRUCIBLE_ID_LENGTH:
+        try:
+            found = client.samples.get(reference)
+        except Exception:
+            found = None
+        if found:
+            return found['unique_id'], []
+
+    matches = client.samples.list(sample_name=reference,
+                                  project_id=project,
+                                  sample_type=parent_type)
+    if len(matches) == 1:
+        return matches[0]['unique_id'], []
+    return None, matches
+
+
+def validate_rows(records, project, synthesis_type, selections):
+    """
+    Read-only pass. Resolves every parent reference and looks for sample names
+    already present in the project. Writes nothing.
+
+    Returns (resolved, ambiguous, unresolved, duplicates) where resolved maps
+    (row, field) to a parent unique_id.
+    """
+    parent_conf = PARENT_FIELDS.get(synthesis_type)
+    resolved = {}
+    ambiguous = []
+    unresolved = []
+    duplicates = []
+
+    for row, record in records:
+        sample_name = record.get('sample_name')
+
+        if sample_name:
+            existing = client.samples.list(sample_name=sample_name, project_id=project)
+            if existing:
+                duplicates.append(DuplicateName(
+                    row=row,
+                    sample_name=sample_name,
+                    existing_count=len(existing),
+                    existing_ids=[e['unique_id'] for e in existing],
+                ))
+
+        if not parent_conf:
+            continue
+
+        for field, field_label in parent_conf['fields'].items():
+            reference = record.get(field)
+            if reference is None or not str(reference).strip():
+                continue
+
+            chosen = selections.get((row, field))
+            if chosen and _selection_is_valid(chosen, project, parent_conf['parent_type']):
+                resolved[(row, field)] = chosen
+                continue
+
+            parent_id, candidates = resolve_parent_reference(
+                reference, project, parent_conf['parent_type'])
+
+            if parent_id:
+                resolved[(row, field)] = parent_id
+            elif candidates:
+                ambiguous.append(AmbiguousParent(
+                    row=row,
+                    sample_name=sample_name,
+                    field=field,
+                    field_label=field_label,
+                    reference=str(reference).strip(),
+                    candidates=[_candidate(c) for c in candidates],
+                ))
+            else:
+                unresolved.append(UnresolvedParent(
+                    row=row,
+                    sample_name=sample_name,
+                    field=field,
+                    field_label=field_label,
+                    reference=str(reference).strip(),
+                    expected_type=parent_conf['parent_type'],
+                ))
+
+    return resolved, ambiguous, unresolved, duplicates
+
+
+def prepare_records(dataset_df):
+    """Normalise the sheet and pair each row with its original position."""
     dataset_df = dataset_df.replace('', np.nan).dropna(how='all')
     dataset_df = dataset_df.replace(np.nan, None)
     dataset_df.columns = [x.lower().replace(' ', '_') for x in dataset_df.columns]
-    ds_dictionaries = dataset_df.to_dict('records')
+    # dropna keeps the original labels, so the index still points at the row
+    # the user sees in their spreadsheet.
+    return list(zip(dataset_df.index.tolist(), dataset_df.to_dict('records')))
+
+
+def upload_all_sample_synthesis_info(orcid, project, records, synthesis_type, user_name,
+                                     resolved, unresolved, session_name=None):
+    logger.debug(f"Adding {len(records)} rows of {synthesis_type} dataset to project {project}")
+
+    parent_conf = PARENT_FIELDS.get(synthesis_type, {})
+    parent_field_names = list(parent_conf.get('fields', {}))
+
+    # Rows whose parent reference matched nothing are skipped outright rather
+    # than written without their genealogy.
+    skip = {}
+    for u in unresolved:
+        skip.setdefault(u.row, []).append(
+            f"{u.field_label} '{u.reference}' matched no {u.expected_type}")
 
     success_count = 0
     failed_count = 0
     error_messages = []
     created_samples = []
 
-    for record in ds_dictionaries:
+    for row, record in records:
+        display_row = row + 1
+        sample_name = record.get('sample_name', 'Unknown')
+
+        if row in skip:
+            failed_count += 1
+            error_messages.append(
+                f"Row {display_row} '{sample_name}': {'; '.join(skip[row])} — row skipped, nothing written")
+            continue
+
         try:
             new_samp = add_sample(orcid=orcid, project=project,
                                   sample_name=record['sample_name'],
@@ -135,24 +276,21 @@ def upload_all_sample_synthesis_info(orcid, project, dataset_df, synthesis_type,
             sample_uuid = new_samp['unique_id']
             created_samples.append({'sample_name': record['sample_name'], 'unique_id': sample_uuid})
 
-            if synthesis_type == 'Stock Solution':
-                link_to_parent_by_name(record, 'organic_salt_sp-id', project, sample_uuid)
-                link_to_parent_by_name(record, 'metal_salt_sp-id', project, sample_uuid)
-
-            if synthesis_type == 'Precursor Solution':
-                link_to_parent_by_name(record, 'component_a_ss-id', project, sample_uuid)
-                link_to_parent_by_name(record, 'component_b_ss-id', project, sample_uuid)
+            for field in parent_field_names:
+                parent_id = resolved.get((row, field))
+                if parent_id:
+                    client.samples.link(parent_id, sample_uuid)
 
             canonical_updates = {f'{k}_canonical': canonical(v) for k,v in record.items() if 'smiles' in k.lower()}
             record.update(canonical_updates)
-                
-            add_synthesis_dataset(orcid, project, record, synthesis_type, user_name, session_name)
+
+            add_synthesis_dataset(orcid, project, record, synthesis_type, user_name,
+                                  sample_uuid, session_name)
             success_count += 1
 
         except Exception as err:
             failed_count += 1
-            sample_name = record.get('sample_name', 'Unknown')
-            error_messages.append(f"Sample '{sample_name}': {str(err)}")
+            error_messages.append(f"Row {display_row} '{sample_name}': {str(err)}")
             logger.error(f"dataset upload failed for {record} with error: {err}")
 
     summary = {
@@ -160,7 +298,7 @@ def upload_all_sample_synthesis_info(orcid, project, dataset_df, synthesis_type,
         "Synthesis Type": synthesis_type,
         "Samples Uploaded": success_count,
         "Failed": failed_count,
-        "Total Rows": len(ds_dictionaries),
+        "Total Rows": len(records),
         "Created Samples": created_samples
     }
     if error_messages:
@@ -197,13 +335,43 @@ async def upload_synthesis_data(request: SynthesisUploadRequest):
         if not request.data or len(request.data) == 0:
             return SynthesisUploadResponse(success=False, message="No data provided for upload")
 
-        df = pd.DataFrame(request.data)
+        records = prepare_records(pd.DataFrame(request.data))
+        selections = {(s.row, s.field): s.unique_id for s in request.parent_selections}
+
+        # Pass 1 is read-only, so halting here leaves Crucible untouched.
+        resolved, ambiguous, unresolved, duplicates = validate_rows(
+            records, request.project, request.synthesis_type, selections)
+
+        if ambiguous:
+            logger.info(f"Upload halted: {len(ambiguous)} parent reference(s) need selection")
+            return SynthesisUploadResponse(
+                success=False,
+                message=f"{len(ambiguous)} parent reference(s) match more than one sample. "
+                        f"Choose which one to link, then upload again. Nothing has been uploaded yet.",
+                needs_selection=ambiguous,
+                unresolved_parents=unresolved,
+                duplicate_names=duplicates,
+            )
+
+        if duplicates and not request.confirm_duplicate_names:
+            logger.info(f"Upload halted: {len(duplicates)} row(s) reuse an existing sample name")
+            return SynthesisUploadResponse(
+                success=False,
+                message=f"{len(duplicates)} of {len(records)} rows use a Sample Name that already "
+                        f"exists in '{request.project}'. Confirm to upload them anyway. "
+                        f"Nothing has been uploaded yet.",
+                unresolved_parents=unresolved,
+                duplicate_names=duplicates,
+            )
+
         status_msg, summary = upload_all_sample_synthesis_info(
             orcid=request.orcid,
             project=request.project,
-            dataset_df=df,
+            records=records,
             synthesis_type=request.synthesis_type,
             user_name=request.user_name,
+            resolved=resolved,
+            unresolved=unresolved,
             session_name=request.session_name
         )
 
