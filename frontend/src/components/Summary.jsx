@@ -33,6 +33,26 @@ const Summary = ({ message, summary, onAddMore, onLogout }) => {
             </div>
           </div>
 
+          {summary['Created Samples'] && summary['Created Samples'].length > 0 && (
+            <div className="created-samples-section">
+              <h4>Created Samples</h4>
+              <ul className="created-samples-list">
+                {summary['Created Samples'].map((s) => (
+                  <li key={s.unique_id}>
+                    {s.sample_name} &mdash;{' '}
+                    <a
+                      href={`https://crucible-graph-explorer-776258882599.us-central1.run.app/MFP00000/sample-graph/${s.unique_id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {s.unique_id}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {summary.Errors && summary.Errors.length > 0 && (
             <div className="error-section">
               <h4>Errors</h4>
