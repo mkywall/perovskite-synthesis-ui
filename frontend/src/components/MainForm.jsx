@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import DataTable from './DataTable';
+import ValidationReview from './ValidationReview';
 import { getSynthesisFields, uploadSynthesisData } from '../services/api';
+
+const selectionKey = (row, field) => `${row}::${field}`;
 
 const MainForm = ({ userInfo, onUploadSuccess }) => {
   const [synthesisFields, setSynthesisFields] = useState({});
@@ -9,6 +12,9 @@ const MainForm = ({ userInfo, onUploadSuccess }) => {
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [validation, setValidation] = useState(null);
+  const [parentSelections, setParentSelections] = useState({});
+  const [confirmDuplicates, setConfirmDuplicates] = useState(false);
 
   useEffect(() => {
     const fetchFields = async () => {
@@ -24,10 +30,17 @@ const MainForm = ({ userInfo, onUploadSuccess }) => {
     fetchFields();
   }, []);
 
+  const clearValidation = () => {
+    setValidation(null);
+    setParentSelections({});
+    setConfirmDuplicates(false);
+  };
+
   const handleSynthesisTypeChange = (e) => {
     setSelectedSynthesisType(e.target.value);
     setTableData([]);
     setError('');
+    clearValidation();
   };
 
   const handleUpload = async () => {
@@ -57,13 +70,33 @@ const MainForm = ({ userInfo, onUploadSuccess }) => {
         user_name: userInfo.name,
         project: selectedProject,
         synthesis_type: selectedSynthesisType,
-        data: tableData
+        data: tableData,
+        parent_selections: Object.entries(parentSelections).map(([key, unique_id]) => {
+          const [row, field] = key.split('::');
+          return { row: Number(row), field, unique_id };
+        }),
+        confirm_duplicate_names: confirmDuplicates
       };
 
       const response = await uploadSynthesisData(uploadData);
 
       if (response.success) {
+        clearValidation();
         onUploadSuccess(response.message, response.summary);
+        return;
+      }
+
+      const needsReview =
+        (response.needs_selection?.length || 0) > 0 ||
+        (response.duplicate_names?.length || 0) > 0;
+
+      if (needsReview) {
+        setValidation({
+          message: response.message,
+          needsSelection: response.needs_selection || [],
+          unresolvedParents: response.unresolved_parents || [],
+          duplicateNames: response.duplicate_names || []
+        });
       } else {
         setError(response.message || 'Upload failed');
       }
@@ -75,10 +108,15 @@ const MainForm = ({ userInfo, onUploadSuccess }) => {
     }
   };
 
+  const handleSelectParent = (row, field, uniqueId) => {
+    setParentSelections((prev) => ({ ...prev, [selectionKey(row, field)]: uniqueId }));
+  };
+
   const handleCancel = () => {
     setSelectedSynthesisType('');
     setTableData([]);
     setError('');
+    clearValidation();
   };
 
   const currentFields = selectedSynthesisType ? synthesisFields[selectedSynthesisType] || [] : [];
@@ -97,8 +135,11 @@ const MainForm = ({ userInfo, onUploadSuccess }) => {
             <select
               id="project"
               value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-              disabled={loading}
+              onChange={(e) => {
+                setSelectedProject(e.target.value);
+                clearValidation();
+              }}
+              disabled={loading || validation !== null}
             >
               <option value="">-- Select a project --</option>
               {userInfo.projects.map((project) => (
@@ -115,7 +156,7 @@ const MainForm = ({ userInfo, onUploadSuccess }) => {
               id="synthesisType"
               value={selectedSynthesisType}
               onChange={handleSynthesisTypeChange}
-              disabled={loading}
+              disabled={loading || validation !== null}
             >
               <option value="">-- Select synthesis type --</option>
               {Object.keys(synthesisFields).map((type) => (
@@ -129,7 +170,8 @@ const MainForm = ({ userInfo, onUploadSuccess }) => {
 
         {showTable && (
           <>
-            <div className="table-section">
+            {/* Kept mounted while reviewing so the entered rows survive going back. */}
+            <div className="table-section" hidden={validation !== null}>
               <h3>Enter Sample Data</h3>
               <DataTable
                 fields={currentFields}
@@ -144,22 +186,38 @@ const MainForm = ({ userInfo, onUploadSuccess }) => {
               </div>
             )}
 
-            <div className="button-group">
-              <button
-                className="btn btn-primary btn-large"
-                onClick={handleUpload}
-                disabled={loading}
-              >
-                {loading ? 'Uploading...' : 'Upload Data'}
-              </button>
-              <button
-                className="btn btn-secondary btn-large"
-                onClick={handleCancel}
-                disabled={loading}
-              >
-                Cancel
-              </button>
-            </div>
+            {validation ? (
+              <ValidationReview
+                message={validation.message}
+                needsSelection={validation.needsSelection}
+                unresolvedParents={validation.unresolvedParents}
+                duplicateNames={validation.duplicateNames}
+                selections={parentSelections}
+                onSelect={handleSelectParent}
+                confirmDuplicates={confirmDuplicates}
+                onConfirmDuplicatesChange={setConfirmDuplicates}
+                onSubmit={handleUpload}
+                onCancel={clearValidation}
+                loading={loading}
+              />
+            ) : (
+              <div className="button-group">
+                <button
+                  className="btn btn-primary btn-large"
+                  onClick={handleUpload}
+                  disabled={loading}
+                >
+                  {loading ? 'Uploading...' : 'Upload Data'}
+                </button>
+                <button
+                  className="btn btn-secondary btn-large"
+                  onClick={handleCancel}
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
