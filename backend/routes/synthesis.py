@@ -33,7 +33,7 @@ RUN_ENV = os.getenv('RUN_ENV')
 if RUN_ENV != 'cloud':
     load_dotenv()
 
-crucible_url = "https://crucible.lbl.gov/api/v2"
+crucible_url = "https://crucible.lbl.gov/api/v3"
 admin_apikey = os.environ.get('ADMIN_APIKEY')
 client = CrucibleClient(crucible_url, admin_apikey)
 logger.info(f"Crucible client initialized with URL: {crucible_url}")
